@@ -39,7 +39,7 @@ services:
 
       # Fallback redirect middleware
       - "traefik.http.middlewares.fallback-redirect.redirectregex.regex=.*"
-      - "traefik.http.middlewares.fallback-redirect.redirectregex.replacement=https://nextcloud.${HOST}"
+      - "traefik.http.middlewares.fallback-redirect.redirectregex.replacement=https://${HOST}"
       - "traefik.http.middlewares.fallback-redirect.redirectregex.permanent=false"
 
       # Redirect http://www.{HOST} and http://{HOST} to https://{HOST} 
