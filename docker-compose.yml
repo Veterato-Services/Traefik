@@ -1,0 +1,84 @@
+version: '3.7'
+services:
+  dockerproxy:
+    environment:
+      CONTAINERS: 1
+    image: tecnativa/docker-socket-proxy
+    runtime: runc
+    restart: unless-stopped
+    networks:
+      - traefik
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  traefik:
+    image: traefik:2.5.4
+    runtime: runc
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges: true
+    networks:
+      - traefik
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "./data/traefik.yml:/traefik.yml:ro"
+      - "./data/acme.json:/acme.json"
+      - "./data/dynamic_conf.yml:/dynamic_conf.yml"
+    labels:
+      - "traefik.enable=true"
+      - "providers.file.filename=/dynamic_conf.yml"
+
+      # Global redirects
+      # HTTPS and www. redirect middleware
+      - "traefik.http.middlewares.https-redirect.redirectregex.regex=^https?://(?:www.)?(.+)"
+      - "traefik.http.middlewares.https-redirect.redirectregex.replacement=https://$${1}"
+      - "traefik.http.middlewares.https-redirect.redirectregex.permanent=true"
+
+      # Fallback redirect middleware
+      - "traefik.http.middlewares.fallback-redirect.redirectregex.regex=.*"
+      - "traefik.http.middlewares.fallback-redirect.redirectregex.replacement=https://nextcloud.${HOST}"
+      - "traefik.http.middlewares.fallback-redirect.redirectregex.permanent=false"
+
+      # Redirect http://www.{HOST} and http://{HOST} to https://{HOST} 
+      - "traefik.http.routers.http-catchall.entrypoints=http"
+      - "traefik.http.routers.http-catchall.rule=HostRegexp(`{host:(www.)?.+}`)"
+      - "traefik.http.routers.http-catchall.middlewares=https-redirect"
+      
+      # Redirect https://www.{HOST} to https://{HOST}
+      - "traefik.http.routers.https-catchall.entrypoints=https"
+      - "traefik.http.routers.https-catchall.tls=true"
+      - "traefik.http.routers.https-catchall.rule=HostRegexp(`{host:(www.).+}`)"
+      - "traefik.http.routers.https-catchall.middlewares=https-redirect"
+
+      # Fallback router http
+      - "traefik.http.routers.fallback.entrypoints=http"
+      - "traefik.http.routers.fallback.rule=HostRegexp(`.*`)"
+      - "traefik.http.routers.fallback.middlewares=fallback-redirect"
+      - "traefik.http.routers.fallback.priority=1"
+        
+      # Fallback router https
+      - "traefik.http.routers.fallback-secure.entrypoints=https"
+      - "traefik.http.routers.fallback-secure.tls=true"
+      - "traefik.http.routers.fallback-secure.rule=HostRegexp(`.*`)"
+      - "traefik.http.routers.fallback-secure.middlewares=fallback-redirect"
+      - "traefik.http.routers.fallback-secure.priority=1"
+
+      # Trafik dashboard
+      # Auth middleware
+      # export TRAEFIK_DASHBOARD_AUTH=$(echo $(htpasswd -nb ${TRAEFIK_DASHBOARD_USER} ${TRAEFIK_DASHBOARD_PASSWORD}) | sed -e s/\\$/\\$\\$/g)
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
+
+      # Dashboard router
+      - "traefik.http.routers.traefik-secure.entrypoints=https"
+      - "traefik.http.routers.traefik-secure.rule=Host(`traefik.${HOST}`)"
+      - "traefik.http.routers.traefik-secure.tls=true"
+      - "traefik.http.routers.traefik-secure.tls.certresolver=http"
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+      - "traefik.http.routers.traefik-secure.middlewares=secHeaders@file,traefik-auth"
+
+networks:
+  traefik:
+    external: true

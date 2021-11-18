@@ -1,0 +1,23 @@
+api:
+  dashboard: true
+entryPoints:
+  http:
+    address: ":80"
+  https:
+    address: ":443"
+log:
+  level: DEBUG
+providers:
+  docker:
+    endpoint: "tcp://dockerproxy:2375"
+    exposedByDefault: false
+    network: traefik
+  file:
+    filename: "./dynamic_conf.yml"
+certificatesResolvers:
+  http:
+    acme:
+      email: info@veterato.de
+      storage: acme.json
+      httpChallenge:
+        entryPoint: http
