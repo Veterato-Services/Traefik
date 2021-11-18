@@ -16,7 +16,7 @@ services:
     runtime: runc
     restart: unless-stopped
     security_opt:
-      - no-new-privileges: true
+      - no-new-privileges:true
     networks:
       - traefik
     ports:
