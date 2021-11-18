@@ -68,7 +68,7 @@ services:
 
       # Trafik dashboard
       # Auth middleware
-      # export TRAEFIK_DASHBOARD_AUTH=$(echo $(htpasswd -nb ${TRAEFIK_DASHBOARD_USER} ${TRAEFIK_DASHBOARD_PASSWORD}) | sed -e s/\\$/\\$\\$/g)
+      # export TRAEFIK_DASHBOARD_AUTH=$(htpasswd -nb ${TRAEFIK_DASHBOARD_USER} ${TRAEFIK_DASHBOARD_PASSWORD})
       - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
 
       # Dashboard router
